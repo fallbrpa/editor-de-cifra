@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Editor de Cifra</title>
+<style>
+  :root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --chord-color: #e53935;
+    --bar-color: red;
+    --border-color: #ccc;
+  }
+
+  body.dark-mode {
+    --bg-color: #121212;
+    --text-color: #f0f0f0;
+    --chord-color: #ff5c5c;
+    --bar-color: #ff5c5c;
+    --border-color: #444;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .vertical {
+    flex-direction: column;
+  }
+
+  textarea {
+    width: 100%;
+    height: 300px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    border-radius: 6px;
+    font-family: monospace;
+  }
+
+  .editor, .preview {
+    flex: 1;
+  }
+
+  #previewArea {
+    font-family: monospace;
+    white-space: pre;
+    line-height: 1.4;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    min-height: 300px;
+  }
+
+  .bar {
+    color: var(--bar-color);
+    font-weight: bold;
+    display: inline-block;
+    width: 1ch;
+    text-align: center;
+  }
+
+  .chord {
+    color: var(--chord-color);
+    font-weight: bold;
+    display: inline-block;
+    text-align: center;
+  }
+
+  .line {
+    white-space: pre;
+    font-family: monospace;
+  }
+
+  button {
+    margin-right: 10px;
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  button:hover {
+    background-color: var(--border-color);
+  }
+
+  h2, h4 {
+    margin-top: 0;
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      flex-direction: column;
+    }
+  }
+</style>
+</head>
+<body>
+  <h2>Editor de Cifra</h2>
+
+  <div>
+    <button id="insertChord">Inserir acorde [C]</button>
+    <button id="transposeUp">Transpor +1</button>
+    <button id="transposeDown">Transpor -1</button>
+    <button id="toggleLayout">Alternar visualização</button>
+    <button id="toggleTheme">Alternar tema</button>
+    <p><small>Editor de Cifras v1</small></p>
+  </div>
+
+  <div id="mainContainer" class="container">
+    <div class="editor">
+      <h4>Editor</h4>
+      <textarea id="inputArea" placeholder="Digite sua cifra aqui..."></textarea>
+    </div>
+    <div class="preview">
+      <h4>Preview</h4>
+      <div id="previewArea"></div>
+    </div>
+  </div>
+
+<script>
+  const inputArea = document.getElementById("inputArea");
+  const previewArea = document.getElementById("previewArea");
+  const insertChord = document.getElementById("insertChord");
+  const toggleLayout = document.getElementById("toggleLayout");
+  const toggleTheme = document.getElementById("toggleTheme");
+  const transposeUp = document.getElementById("transposeUp");
+  const transposeDown = document.getElementById("transposeDown");
+  const container = document.getElementById("mainContainer");
+
+  const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+  inputArea.addEventListener("input", updatePreview);
+  insertChord.addEventListener("click", () => {
+    insertAtCursor(inputArea, "[C]");
+    updatePreview();
+  });
+
+  toggleLayout.addEventListener("click", () => container.classList.toggle("vertical"));
+  toggleTheme.addEventListener("click", () => document.body.classList.toggle("dark-mode"));
+
+  function insertAtCursor(field, value) {
+    const start = field.selectionStart;
+    const end = field.selectionEnd;
+    field.value = field.value.substring(0, start) + value + field.value.substring(end);
+    field.focus();
+    field.selectionStart = field.selectionEnd = start + value.length;
+  }
+
+  function transposeChord(chord, step) {
+    const regex = /^([A-G](#|b)?)(.*)$/;
+    const match = chord.match(regex);
+    if (!match) return chord;
+
+    let root = match[1];
+    let suffix = match[3] || "";
+
+    const flatMap = { "Db":"C#", "Eb":"D#", "Gb":"F#", "Ab":"G#", "Bb":"A#" };
+    if (flatMap[root]) root = flatMap[root];
+
+    let index = notes.indexOf(root);
+    if (index === -1) return chord;
+
+    let newIndex = (index + step + notes.length) % notes.length;
+    return notes[newIndex] + suffix;
+  }
+
+  function transposeText(text, step) {
+    return text.replace(/\[([^\]]+)\]/g, (match, chord) => {
+      let bar = chord.startsWith("|") ? "|" : "";
+      let c = bar ? chord.slice(1) : chord;
+      return `[${bar}${transposeChord(c, step)}]`;
+    });
+  }
+
+  transposeUp.addEventListener("click", () => {
+    inputArea.value = transposeText(inputArea.value, 1);
+    updatePreview();
+  });
+
+  transposeDown.addEventListener("click", () => {
+    inputArea.value = transposeText(inputArea.value, -1);
+    updatePreview();
+  });
+
+  function updatePreview() {
+    const text = inputArea.value;
+    const lines = text.split("\n");
+    let html = "";
+
+    lines.forEach(line => {
+      let chordLine = "";
+      let lyricLine = "";
+      let chordActive = false;
+      let chordBuffer = "";
+
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+
+        if (ch === "[" && !chordActive) {
+          chordActive = true;
+          chordBuffer = "";
+        } else if (ch === "]" && chordActive) {
+          chordActive = false;
+
+          if (chordBuffer.startsWith("|")) {
+            const core = chordBuffer.slice(1);
+            // barra alinhada com o acorde
+            chordLine += `<span class="chord">${escapeHtml(core)}</span>`;
+            lyricLine += `<span class="bar">|</span>`;
+            lyricLine += "&nbsp;".repeat(core.length - 1);
+          } else {
+            chordLine += `<span class="chord">${escapeHtml(chordBuffer)}</span>`;
+            lyricLine += "&nbsp;".repeat(chordBuffer.length);
+          }
+
+        } else if (chordActive) {
+          chordBuffer += ch;
+        } else {
+          chordLine += "&nbsp;";
+          lyricLine += (ch === " ") ? "&nbsp;" : escapeHtml(ch);
+        }
+      }
+
+      html += `<div class="line">${chordLine}<br>${lyricLine}</div>`;
+    });
+
+    previewArea.innerHTML = html;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  updatePreview();
+</script>
+</body>
+</html>
