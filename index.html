@@ -54,6 +54,7 @@
   .editor, .preview {
     flex: 1;
   }
+
   .editor {
     margin-right: 20px;
   }
@@ -114,18 +115,65 @@
       flex-direction: column;
     }
   }
+
+  /* Dropdown para inserir acordes */
+  .dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 10;
+    margin-top: 5px;
+  }
+
+  .dropdown-content button.option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-color);
+  }
+
+  .dropdown-content button.option:hover {
+    background-color: var(--border-color);
+  }
+
+  .dropdown.show .dropdown-content {
+    display: block;
+  }
 </style>
 </head>
 <body>
   <h2>Editor de Cifra</h2>
 
   <div>
-    <button id="insertChord">Inserir acorde [C]</button>
+    <div class="dropdown">
+      <button id="insertChord">Inserir acorde</button>
+      <div id="chordMenu" class="dropdown-content">
+        <button class="option" data-chord="[C]">Acorde normal [C]</button>
+        <button class="option" data-chord="[|C]">Acorde com barra [|C]</button>
+        <button class="option" data-chord="[ C]">Acorde de introdução [ C]</button>
+      </div>
+    </div>
     <button id="transposeUp">Transpor +1</button>
     <button id="transposeDown">Transpor -1</button>
     <button id="toggleLayout">Alternar visualização</button>
     <button id="toggleTheme">Alternar tema</button>
-    <p><small>Editor de Cifras v1</small></p>
+    <button id="exportTxt">Exportar TXT</button>
+    <button id="exportJson">Exportar JSON</button>
+    <button id="importFile">Importar</button>
+    <input type="file" id="fileInput" accept=".txt,.json" style="display:none" />
+    <p><small>Editor de Cifras v1.0</small></p>
   </div>
 
   <div id="mainContainer" class="container">
@@ -147,18 +195,58 @@
   const toggleTheme = document.getElementById("toggleTheme");
   const transposeUp = document.getElementById("transposeUp");
   const transposeDown = document.getElementById("transposeDown");
+  const exportTxt = document.getElementById("exportTxt");
+  const exportJson = document.getElementById("exportJson");
+  const importFile = document.getElementById("importFile");
+  const fileInput = document.getElementById("fileInput");
   const container = document.getElementById("mainContainer");
+  const chordMenu = document.getElementById("chordMenu");
+  const dropdown = document.querySelector(".dropdown");
 
-  const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+  // ====== 🔹 Salvar e carregar estado ======
+  function saveState() {
+    localStorage.setItem("cifraTheme", document.body.classList.contains("dark-mode"));
+    localStorage.setItem("cifraLayout", container.classList.contains("vertical"));
+  }
+
+  function loadState() {
+    const dark = localStorage.getItem("cifraTheme") === "true";
+    const vertical = localStorage.getItem("cifraLayout") === "true";
+    if (dark) document.body.classList.add("dark-mode");
+    if (vertical) container.classList.add("vertical");
+  }
+
+  // ====== Inicialização ======
+  loadState();
 
   inputArea.addEventListener("input", updatePreview);
-  insertChord.addEventListener("click", () => {
-    insertAtCursor(inputArea, "[C]");
-    updatePreview();
+  toggleLayout.addEventListener("click", () => {
+    container.classList.toggle("vertical");
+    saveState();
+  });
+  toggleTheme.addEventListener("click", () => {
+    document.body.classList.toggle("dark-mode");
+    saveState();
   });
 
-  toggleLayout.addEventListener("click", () => container.classList.toggle("vertical"));
-  toggleTheme.addEventListener("click", () => document.body.classList.toggle("dark-mode"));
+  // ====== Menu de acordes ======
+  insertChord.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle("show");
+  });
+
+  document.querySelectorAll(".dropdown-content .option").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const chord = e.target.getAttribute("data-chord");
+      insertAtCursor(inputArea, chord);
+      updatePreview();
+      dropdown.classList.remove("show");
+    });
+  });
+
+  document.addEventListener("click", () => dropdown.classList.remove("show"));
 
   function insertAtCursor(field, value) {
     const start = field.selectionStart;
@@ -168,6 +256,7 @@
     field.selectionStart = field.selectionEnd = start + value.length;
   }
 
+  // ====== Transposição ======
   function transposeChord(chord, step) {
     const regex = /^([A-G](#|b)?)(.*)$/;
     const match = chord.match(regex);
@@ -188,9 +277,9 @@
 
   function transposeText(text, step) {
     return text.replace(/\[([^\]]+)\]/g, (match, chord) => {
-      let bar = chord.startsWith("|") ? "|" : "";
-      let c = bar ? chord.slice(1) : chord;
-      return `[${bar}${transposeChord(c, step)}]`;
+      let prefix = chord[0] === "|" || chord[0] === " " ? chord[0] : "";
+      chord = prefix ? chord.slice(1) : chord;
+      return `[${prefix}${transposeChord(chord, step)}]`;
     });
   }
 
@@ -204,6 +293,7 @@
     updatePreview();
   });
 
+  // ====== Renderização ======
   function updatePreview() {
     const text = inputArea.value;
     const lines = text.split("\n");
@@ -226,10 +316,12 @@
 
           if (chordBuffer.startsWith("|")) {
             const core = chordBuffer.slice(1);
-            // barra alinhada com o acorde
             chordLine += `<span class="chord">${escapeHtml(core)}</span>`;
-            lyricLine += `<span class="bar">|</span>`;
-            lyricLine += "&nbsp;".repeat(core.length - 1);
+            lyricLine += `<span class="bar">|</span>` + "&nbsp;".repeat(core.length - 1);
+          } else if (chordBuffer.startsWith(" ")) {
+            const core = chordBuffer.slice(1);
+            chordLine += "&nbsp;".repeat(core.length);
+            lyricLine += `<span class="chord">${escapeHtml(core)}</span>`;
           } else {
             chordLine += `<span class="chord">${escapeHtml(chordBuffer)}</span>`;
             lyricLine += "&nbsp;".repeat(chordBuffer.length);
@@ -250,11 +342,65 @@
   }
 
   function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   }
+
+  // ====== Exportar / Importar ======
+  function downloadFile(blob, filename) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  exportTxt.addEventListener("click", () => {
+    const blob = new Blob([inputArea.value], { type: "text/plain" });
+    downloadFile(blob, "cifra.txt");
+  });
+
+  exportJson.addEventListener("click", () => {
+    const data = { cifra: inputArea.value };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    downloadFile(blob, "cifra.json");
+  });
+
+  importFile.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target.result;
+      if (file.name.endsWith(".json")) {
+        try {
+          const data = JSON.parse(content);
+          inputArea.value = data.cifra || "";
+        } catch {
+          alert("Arquivo JSON inválido!");
+        }
+      } else {
+        inputArea.value = content;
+      }
+      updatePreview();
+    };
+    reader.readAsText(file);
+  });
+
+  // ====== Atalhos ======
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey) {
+      switch (e.key) {
+        case "1": e.preventDefault(); insertAtCursor(inputArea, "[C]"); break;
+        case "2": e.preventDefault(); insertAtCursor(inputArea, "[|C]"); break;
+        case "3": e.preventDefault(); insertAtCursor(inputArea, "[ C]"); break;
+        case "ArrowUp": e.preventDefault(); inputArea.value = transposeText(inputArea.value, 1); break;
+        case "ArrowDown": e.preventDefault(); inputArea.value = transposeText(inputArea.value, -1); break;
+      }
+      updatePreview();
+    }
+  });
 
   updatePreview();
 </script>
