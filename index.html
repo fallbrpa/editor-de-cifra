@@ -157,6 +157,16 @@
   <h2>Editor de Cifra</h2>
 
   <div>
+    <button id="toggleButtonMenu">Mostrar/Esconder botões extras</button>
+    <div id="extraButtons" style="display: none;">
+      <button id="transposeUp">Transpor +1</button>
+      <button id="transposeDown">Transpor -1</button>
+      <button id="toggleLayout">Alternar visualização</button>
+      <button id="toggleTheme">Alternar tema</button>
+      <button id="exportTxt">Exportar TXT</button>
+      <button id="exportJson">Exportar JSON</button>
+      <button id="importFile">Importar</button>
+    </div>
     <div class="dropdown">
       <button id="insertChord">Inserir acorde</button>
       <div id="chordMenu" class="dropdown-content">
@@ -165,13 +175,6 @@
         <button class="option" data-chord="[ C]">Acorde de introdução [ C]</button>
       </div>
     </div>
-    <button id="transposeUp">Transpor +1</button>
-    <button id="transposeDown">Transpor -1</button>
-    <button id="toggleLayout">Alternar visualização</button>
-    <button id="toggleTheme">Alternar tema</button>
-    <button id="exportTxt">Exportar TXT</button>
-    <button id="exportJson">Exportar JSON</button>
-    <button id="importFile">Importar</button>
     <input type="file" id="fileInput" accept=".txt,.json" style="display:none" />
     <p><small>Editor de Cifras v1.0</small></p>
   </div>
@@ -304,6 +307,7 @@
       let lyricLine = "";
       let chordActive = false;
       let chordBuffer = "";
+      let chordSkipper = 0
 
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
@@ -316,21 +320,27 @@
 
           if (chordBuffer.startsWith("|")) {
             const core = chordBuffer.slice(1);
+            chordSkipper = core.length - 1;
             chordLine += `<span class="chord">${escapeHtml(core)}</span>`;
-            lyricLine += `<span class="bar">|</span>` + "&nbsp;".repeat(core.length - 1);
+            lyricLine += `<span class="bar">|</span>`;
           } else if (chordBuffer.startsWith(" ")) {
             const core = chordBuffer.slice(1);
             chordLine += "&nbsp;".repeat(core.length);
             lyricLine += `<span class="chord">${escapeHtml(core)}</span>`;
           } else {
+            chordSkipper = chordBuffer.length;
             chordLine += `<span class="chord">${escapeHtml(chordBuffer)}</span>`;
-            lyricLine += "&nbsp;".repeat(chordBuffer.length);
+            // lyricLine += "&nbsp;".repeat(chordBuffer.length);
           }
 
         } else if (chordActive) {
           chordBuffer += ch;
         } else {
-          chordLine += "&nbsp;";
+          if(chordSkipper === 0) {
+            chordLine += "&nbsp;";
+          } else {
+            chordSkipper--;
+          }
           lyricLine += (ch === " ") ? "&nbsp;" : escapeHtml(ch);
         }
       }
