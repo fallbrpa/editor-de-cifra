@@ -100,11 +100,29 @@
     color: var(--text-color);
     cursor: pointer;
     transition: all 0.3s ease;
+    margin-bottom: 5px;
   }
 
   button:hover {
     background-color: var(--border-color);
   }
+
+  /* --- CSS PARA ANIMAÇÃO DOS BOTÕES EXTRAS --- */
+  #extraButtons {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+    margin-bottom: 0;
+  }
+
+  #extraButtons.show {
+    max-height: 200px; /* Valor alto o suficiente para caber os botões */
+    opacity: 1;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+  /* ------------------------------------------ */
 
   h2, h4 {
     margin-top: 0;
@@ -116,7 +134,6 @@
     }
   }
 
-  /* Dropdown para inserir acordes */
   .dropdown {
     position: relative;
     display: inline-block;
@@ -157,8 +174,9 @@
   <h2>Editor de Cifra</h2>
 
   <div>
-    <button id="toggleButtonMenu">Mostrar/Esconder botões extras</button>
-    <div id="extraButtons" style="display: none;">
+    <button id="toggleButtonMenu">Mostrar botões extras</button>
+    
+    <div id="extraButtons">
       <button id="transposeUp">Transpor +1</button>
       <button id="transposeDown">Transpor -1</button>
       <button id="toggleLayout">Alternar visualização</button>
@@ -167,6 +185,7 @@
       <button id="exportJson">Exportar JSON</button>
       <button id="importFile">Importar</button>
     </div>
+
     <div class="dropdown">
       <button id="insertChord">Inserir acorde</button>
       <div id="chordMenu" class="dropdown-content">
@@ -191,6 +210,7 @@
   </div>
 
 <script>
+  // Seleção de elementos
   const inputArea = document.getElementById("inputArea");
   const previewArea = document.getElementById("previewArea");
   const insertChord = document.getElementById("insertChord");
@@ -205,10 +225,26 @@
   const container = document.getElementById("mainContainer");
   const chordMenu = document.getElementById("chordMenu");
   const dropdown = document.querySelector(".dropdown");
+  
+  // Elementos do menu de botões extras (CORREÇÃO)
+  const toggleButtonMenu = document.getElementById("toggleButtonMenu");
+  const extraButtons = document.getElementById("extraButtons");
 
   const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 
-  // ====== 🔹 Salvar e carregar estado ======
+  // ====== Lógica do Botão Mostrar/Esconder (NOVO) ======
+  toggleButtonMenu.addEventListener("click", () => {
+    extraButtons.classList.toggle("show");
+    
+    // Altera o texto do botão para feedback visual
+    if (extraButtons.classList.contains("show")) {
+      toggleButtonMenu.textContent = "Esconder botões extras";
+    } else {
+      toggleButtonMenu.textContent = "Mostrar botões extras";
+    }
+  });
+
+  // ====== Salvar e carregar estado ======
   function saveState() {
     localStorage.setItem("cifraTheme", document.body.classList.contains("dark-mode"));
     localStorage.setItem("cifraLayout", container.classList.contains("vertical"));
@@ -221,14 +257,16 @@
     if (vertical) container.classList.add("vertical");
   }
 
-  // ====== Inicialização ======
   loadState();
 
+  // ====== Eventos de Interface ======
   inputArea.addEventListener("input", updatePreview);
+  
   toggleLayout.addEventListener("click", () => {
     container.classList.toggle("vertical");
     saveState();
   });
+
   toggleTheme.addEventListener("click", () => {
     document.body.classList.toggle("dark-mode");
     saveState();
@@ -330,7 +368,6 @@
           } else {
             chordSkipper = chordBuffer.length;
             chordLine += `<span class="chord">${escapeHtml(chordBuffer)}</span>`;
-            // lyricLine += "&nbsp;".repeat(chordBuffer.length);
           }
 
         } else if (chordActive) {
@@ -344,10 +381,8 @@
           lyricLine += (ch === " ") ? "&nbsp;" : escapeHtml(ch);
         }
       }
-
       html += `<div class="line">${chordLine}<br>${lyricLine}</div>`;
     });
-
     previewArea.innerHTML = html;
   }
 
