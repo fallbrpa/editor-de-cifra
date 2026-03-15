@@ -4,449 +4,924 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Editor de Cifra</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
+  /* ===== VARIÁVEIS DE TEMA ===== */
   :root {
-    --bg-color: #ffffff;
-    --text-color: #000000;
-    --chord-color: #e53935;
-    --bar-color: red;
-    --border-color: #ccc;
+    --bg:           #f5f3ef;
+    --surface:      #ffffff;
+    --surface2:     #f0ede8;
+    --border:       #d8d2c8;
+    --text:         #1a1814;
+    --text-muted:   #7a7060;
+    --chord:        #b91c1c;
+    --bar:          #b91c1c;
+    --accent:       #b91c1c;
+    --btn-bg:       #ffffff;
+    --btn-hover:    #ede9e3;
+    --shadow:       0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+    --radius:       8px;
   }
 
-  body.dark-mode {
-    --bg-color: #121212;
-    --text-color: #f0f0f0;
-    --chord-color: #ff5c5c;
-    --bar-color: #ff5c5c;
-    --border-color: #444;
+  body.dark {
+    --bg:           #0f0e0c;
+    --surface:      #1c1a17;
+    --surface2:     #252320;
+    --border:       #3a3630;
+    --text:         #ede8df;
+    --text-muted:   #8a8070;
+    --chord:        #f87171;
+    --bar:          #f87171;
+    --intro:        #60a5fa;
+    --btn-bg:       #252320;
+    --btn-hover:    #302d28;
+    --shadow:       0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
   }
 
   body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-
-  .container {
+    font-family: 'Lora', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
     display: flex;
-    flex-direction: row;
-    gap: 20px;
-    transition: all 0.3s ease;
-  }
-
-  .vertical {
     flex-direction: column;
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
   }
 
-  textarea {
-    width: 100%;
-    height: 300px;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    padding: 10px;
-    border-radius: 6px;
-    font-family: monospace;
+  /* ===== HEADER ===== */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
 
-  .editor, .preview {
-    flex: 1;
+  .logo {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .editor {
-    margin-right: 20px;
-  }
-
-  #previewArea {
-    font-family: monospace;
-    white-space: pre;
-    line-height: 1.4;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 10px;
-    min-height: 300px;
-  }
-
-  .bar {
-    color: var(--bar-color);
-    font-weight: bold;
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
     display: inline-block;
-    width: 1ch;
-    text-align: center;
   }
 
-  .chord {
-    color: var(--chord-color);
-    font-weight: bold;
-    display: inline-block;
-    text-align: center;
+  /* ===== TOOLBAR ===== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
-  .line {
-    white-space: pre;
-    font-family: monospace;
-  }
-
-  button {
-    margin-right: 10px;
-    padding: 5px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background-color: var(--bg-color);
-    color: var(--text-color);
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 13px;
+    border: 1px solid var(--border);
+    border-radius: 25px;
+    background: var(--btn-bg);
+    color: var(--text);
+    font-family: 'Lora', serif;
+    font-size: 0.82rem;
     cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: 5px;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
   }
 
-  button:hover {
-    background-color: var(--border-color);
+  .btn:hover {
+    background: var(--btn-hover);
+    border-color: var(--text-muted);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
   }
 
-  /* --- CSS PARA ANIMAÇÃO DOS BOTÕES EXTRAS --- */
+  .btn-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .btn-danger { color: var(--chord); border-color: var(--chord); }
+  .btn-danger:hover { background: #fef2f2; }
+  body.dark .btn-danger:hover { background: #2a1515; }
+
+  .divider {
+    width: 1px; height: 24px;
+    background: var(--border);
+    margin: 0 2px;
+  }
+
+  /* ===== EXTRA BUTTONS ===== */
   #extraButtons {
     overflow: hidden;
     max-height: 0;
     opacity: 0;
-    transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
-    margin-bottom: 0;
+    background: var(--surface);
+    border-bottom: 0px solid var(--border);
+    transition: max-height 0.17s ease, opacity 0.17s ease;
   }
 
   #extraButtons.show {
-    max-height: 200px; /* Valor alto o suficiente para caber os botões */
+    max-height: 200px;
     opacity: 1;
-    margin-top: 10px;
-    margin-bottom: 10px;
-  }
-  /* ------------------------------------------ */
-
-  h2, h4 {
-    margin-top: 0;
+    border-bottom-width: 1px;
+    transition: max-height 0.17s ease, opacity 0.17s ease;
   }
 
-  @media (max-width: 768px) {
-    .container {
-      flex-direction: column;
-    }
+  .extra-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 24px 10px;
   }
 
-  .dropdown {
-    position: relative;
-    display: inline-block;
-  }
+  /* ===== DROPDOWN ACORDE ===== */
+  .dropdown { position: relative; display: inline-block; }
 
-  .dropdown-content {
-    display: none;
+  .dropdown-menu {
     position: absolute;
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    z-index: 10;
-    margin-top: 5px;
+    top: calc(100% + 6px);
+    left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    z-index: 200;
+    min-width: 230px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
   }
 
-  .dropdown-content button.option {
-    display: block;
+  .dropdown.open .dropdown-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .dropdown-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    text-align: left;
-    background: none;
+    padding: 10px 14px;
     border: none;
-    padding: 8px 12px;
+    background: none;
+    color: var(--text);
+    font-family: 'Lora', serif;
+    font-size: 0.84rem;
     cursor: pointer;
-    color: var(--text-color);
+    text-align: left;
+    transition: background 0.12s;
   }
 
-  .dropdown-content button.option:hover {
-    background-color: var(--border-color);
+  .dropdown-menu button:hover { background: var(--surface2); }
+
+  .chord-preview {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--chord);
+    font-weight: 600;
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
   }
 
-  .dropdown.show .dropdown-content {
+  .kbd {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ===== MAIN LAYOUT ===== */
+  main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    min-height: 0;
+  }
+
+  main.vertical {
+    flex-direction: column;
+  }
+
+  .panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .panel + .panel {
+    border-left: 1px solid var(--border);
+  }
+
+  main.vertical .panel + .panel {
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .panel-header {
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-header small {
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: 0.7rem;
+  }
+
+  /* ===== TEXTAREA ===== */
+  #inputArea {
+    flex: 1;
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 20px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  #inputArea::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+  /* ===== PREVIEW ===== */
+  #previewScroll {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--surface);
+    padding: 24px 28px;
+  }
+
+  /* Estilos da cifra no preview — inspirado na Maranata */
+  .song-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .song-meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 16px;
+  }
+
+  .cifra-block {
+    margin-bottom: 6px;
+  }
+
+  /* Linha com par acorde + letra */
+  .cifra-pair {
     display: block;
+    margin-bottom: 0px;
+  }
+
+  .cifra-chord-row {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--chord);
+    white-space: pre;
+    min-height: 1.35em;
+  }
+
+  .cifra-lyric-row {
+    display: block;
+    font-family: 'Lora', serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+    min-height: 1.6em;
+  }
+
+  /* Acorde inline (acima da letra) */
+  .ch {
+    color: var(--chord);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+
+  /* Barra de compasso | */
+  .ch-bar {
+    color: var(--bar);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+
+  /* Acorde de introdução (inline na linha da letra) */
+  .ch-intro {
+    color: var(--chord);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+
+  /* Linha vazia vira separador visual sutil */
+  .cifra-spacer {
+    display: block;
+    height: 8px;
+  }
+
+  /* Arquivo input oculto */
+  input[type="file"] { display: none; }
+
+  /* ===== SCROLLBAR SUTIL ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--text);
+    color: var(--bg);
+    font-family: 'Lora', serif;
+    font-size: 0.84rem;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ===== DIÁLOGO "SALVAR COMO" ===== */
+  #saveDialog {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  #saveDialog.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .dialog-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 24px 28px;
+    width: 340px;
+    max-width: 90vw;
+    transform: translateY(10px) scale(0.98);
+    transition: transform 0.2s ease;
+  }
+  #saveDialog.show .dialog-box {
+    transform: translateY(0) scale(1);
+  }
+  .dialog-title {
+    font-family: 'Lora', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .dialog-label {
+    font-family: 'Lora', serif;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .dialog-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .dialog-input:focus { border-color: var(--text-muted); }
+  .dialog-ext {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-family: 'Lora', serif;
+  }
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 700px) {
+    main { flex-direction: column; height: auto; }
+    .panel + .panel { border-left: none; border-top: 1px solid var(--border); }
+    #inputArea { min-height: 240px; }
+    #previewScroll { min-height: 300px; }
+    header { padding: 10px 14px; }
   }
 </style>
 </head>
 <body>
-  <h2>Editor de Cifra</h2>
 
-  <div>
-    <button id="toggleButtonMenu">Mostrar botões extras</button>
-    
-    <div id="extraButtons">
-      <button id="transposeUp">Transpor +1</button>
-      <button id="transposeDown">Transpor -1</button>
-      <button id="toggleLayout">Alternar visualização</button>
-      <button id="toggleTheme">Alternar tema</button>
-      <button id="exportTxt">Exportar TXT</button>
-      <button id="exportJson">Exportar JSON</button>
-      <button id="importFile">Importar</button>
-    </div>
-
-    <div class="dropdown">
-      <button id="insertChord">Inserir acorde</button>
-      <div id="chordMenu" class="dropdown-content">
-        <button class="option" data-chord="[C]">Acorde normal [C]</button>
-        <button class="option" data-chord="[|C]">Acorde com barra [|C]</button>
-        <button class="option" data-chord="[ C]">Acorde de introdução [ C]</button>
-      </div>
-    </div>
-    <input type="file" id="fileInput" accept=".txt,.json" style="display:none" />
-    <p><small>Editor de Cifras v1.0</small></p>
+<!-- HEADER / TOOLBAR -->
+<header>
+  <div class="logo">
+    <span class="logo-dot"></span>
+    Editor de Cifra
   </div>
 
-  <div id="mainContainer" class="container">
-    <div class="editor">
-      <h4>Editor</h4>
-      <textarea id="inputArea" placeholder="Digite sua cifra aqui..."></textarea>
+  <div class="toolbar">
+    <!-- Transpor -->
+    <button class="btn" id="transposeDown" title="Descer meio-tom (Ctrl+↓)">
+      <span class="btn-icon">♭</span> −1
+    </button>
+    <button class="btn" id="transposeUp" title="Subir meio-tom (Ctrl+↑)">
+      <span class="btn-icon">♯</span> +1
+    </button>
+
+    <div class="divider"></div>
+
+    <!-- Inserir acorde -->
+    <div class="dropdown" id="chordDropdown">
+      <button class="btn" id="insertChordBtn">
+        <span class="btn-icon">𝄞</span> Acorde ▾
+      </button>
+      <div class="dropdown-menu">
+        <button data-chord="[C]">
+          <span class="chord-preview">[C]</span>
+          Acorde sobre a letra
+          <span class="kbd">Ctrl+1</span>
+        </button>
+        <button data-chord="[|C]">
+          <span class="chord-preview">[|C]</span>
+          Com barra de compasso
+          <span class="kbd">Ctrl+2</span>
+        </button>
+        <button data-chord="[ C]">
+          <span class="chord-preview">[ C]</span>
+          Introdução (abaixo)
+          <span class="kbd">Ctrl+3</span>
+        </button>
+      </div>
     </div>
-    <div class="preview">
-      <h4>Preview</h4>
+
+    <div class="divider"></div>
+
+    <!-- Mais opções -->
+    <button class="btn" id="toggleExtras">⋯ Mais</button>
+  </div>
+</header>
+
+<!-- BARRA DE EXTRAS (expansível) -->
+<div id="extraButtons">
+  <div class="extra-row">
+    <button class="btn" id="toggleLayout">⇄ Alternar layout</button>
+    <button class="btn" id="toggleTheme">◑ Tema</button>
+    <button class="btn" id="exportTxt">↓ Salvar TXT</button>
+    <button class="btn" id="importFile">↑ Importar</button>
+    <input type="file" id="fileInput" accept=".txt,.json" />
+  </div>
+</div>
+
+<!-- LAYOUT PRINCIPAL -->
+<main id="mainLayout">
+  <div class="panel">
+    <div class="panel-header">
+      Editor
+      <small>Use [C], [|C], [ C] para acordes</small>
+    </div>
+    <textarea id="inputArea" placeholder="Digite sua cifra aqui...&#10;&#10;Exemplo:&#10;[Dm]         [A]     [Dm]&#10;Ouvi no céu uma voz tão bela&#10;[Bb]                [Gm]&#10;Falando assim: vem a mim..."></textarea>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      Preview
+      <small id="previewMeta"></small>
+    </div>
+    <div id="previewScroll">
       <div id="previewArea"></div>
     </div>
   </div>
+</main>
+
+<!-- DIÁLOGO SALVAR COMO -->
+<div id="saveDialog">
+  <div class="dialog-box">
+    <div class="dialog-title">Salvar cifra como…</div>
+    <label class="dialog-label" for="saveFilename">Nome do arquivo</label>
+    <input class="dialog-input" id="saveFilename" type="text" placeholder="cifra" spellcheck="false" />
+    <div class="dialog-ext">O arquivo será salvo como <strong>.txt</strong></div>
+    <div class="dialog-actions">
+      <button class="btn" id="saveCancelBtn">Cancelar</button>
+      <button class="btn" id="saveConfirmBtn" style="background:var(--chord);color:#fff;border-color:var(--chord);">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
 
 <script>
-  // Seleção de elementos
-  const inputArea = document.getElementById("inputArea");
-  const previewArea = document.getElementById("previewArea");
-  const insertChord = document.getElementById("insertChord");
-  const toggleLayout = document.getElementById("toggleLayout");
-  const toggleTheme = document.getElementById("toggleTheme");
-  const transposeUp = document.getElementById("transposeUp");
-  const transposeDown = document.getElementById("transposeDown");
-  const exportTxt = document.getElementById("exportTxt");
-  const exportJson = document.getElementById("exportJson");
-  const importFile = document.getElementById("importFile");
-  const fileInput = document.getElementById("fileInput");
-  const container = document.getElementById("mainContainer");
-  const chordMenu = document.getElementById("chordMenu");
-  const dropdown = document.querySelector(".dropdown");
-  
-  // Elementos do menu de botões extras (CORREÇÃO)
-  const toggleButtonMenu = document.getElementById("toggleButtonMenu");
-  const extraButtons = document.getElementById("extraButtons");
+  // ── Elementos ──────────────────────────────────────────────────────────────
+  const inputArea       = document.getElementById("inputArea");
+  const previewArea     = document.getElementById("previewArea");
+  const previewMeta     = document.getElementById("previewMeta");
+  const mainLayout      = document.getElementById("mainLayout");
+  const extraButtons    = document.getElementById("extraButtons");
+  const chordDropdown   = document.getElementById("chordDropdown");
+  const toast           = document.getElementById("toast");
 
-  const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  // ── Notas para transposição ────────────────────────────────────────────────
+  const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const FLAT_MAP = { Db:"C#", Eb:"D#", Gb:"F#", Ab:"G#", Bb:"A#" };
 
-  // ====== Lógica do Botão Mostrar/Esconder (NOVO) ======
-  toggleButtonMenu.addEventListener("click", () => {
-    extraButtons.classList.toggle("show");
-    
-    // Altera o texto do botão para feedback visual
-    if (extraButtons.classList.contains("show")) {
-      toggleButtonMenu.textContent = "Esconder botões extras";
-    } else {
-      toggleButtonMenu.textContent = "Mostrar botões extras";
-    }
-  });
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 2000);
+  }
 
-  // ====== Salvar e carregar estado ======
+  // ── Estado persistente ─────────────────────────────────────────────────────
   function saveState() {
-    localStorage.setItem("cifraTheme", document.body.classList.contains("dark-mode"));
-    localStorage.setItem("cifraLayout", container.classList.contains("vertical"));
+    localStorage.setItem("cifra_dark",     document.body.classList.contains("dark"));
+    localStorage.setItem("cifra_vertical", mainLayout.classList.contains("vertical"));
   }
 
   function loadState() {
-    const dark = localStorage.getItem("cifraTheme") === "true";
-    const vertical = localStorage.getItem("cifraLayout") === "true";
-    if (dark) document.body.classList.add("dark-mode");
-    if (vertical) container.classList.add("vertical");
+    if (localStorage.getItem("cifra_dark")     === "true") document.body.classList.add("dark");
+    if (localStorage.getItem("cifra_vertical") === "true") mainLayout.classList.add("vertical");
+    const saved = localStorage.getItem("cifra_text");
+    if (saved) inputArea.value = saved;
   }
 
-  loadState();
-
-  // ====== Eventos de Interface ======
-  inputArea.addEventListener("input", updatePreview);
-  
-  toggleLayout.addEventListener("click", () => {
-    container.classList.toggle("vertical");
-    saveState();
+  // ── Toolbar — Extras ───────────────────────────────────────────────────────
+  document.getElementById("toggleExtras").addEventListener("click", () => {
+    const show = extraButtons.classList.toggle("show");
+    document.getElementById("toggleExtras").textContent = show ? "✕ Fechar" : "⋯ Mais";
   });
 
-  toggleTheme.addEventListener("click", () => {
-    document.body.classList.toggle("dark-mode");
+  // ── Toolbar — Layout ───────────────────────────────────────────────────────
+  document.getElementById("toggleLayout").addEventListener("click", () => {
+    mainLayout.classList.toggle("vertical");
     saveState();
+    showToast("Layout alterado");
   });
 
-  // ====== Menu de acordes ======
-  insertChord.addEventListener("click", (e) => {
+  // ── Toolbar — Tema ─────────────────────────────────────────────────────────
+  document.getElementById("toggleTheme").addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    saveState();
+    showToast(document.body.classList.contains("dark") ? "Tema escuro" : "Tema claro");
+  });
+
+  // ── Dropdown de acordes ────────────────────────────────────────────────────
+  document.getElementById("insertChordBtn").addEventListener("click", e => {
     e.stopPropagation();
-    dropdown.classList.toggle("show");
+    chordDropdown.classList.toggle("open");
   });
 
-  document.querySelectorAll(".dropdown-content .option").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      const chord = e.target.getAttribute("data-chord");
+  document.querySelectorAll("#chordDropdown .dropdown-menu button").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const chord = e.currentTarget.dataset.chord;
       insertAtCursor(inputArea, chord);
       updatePreview();
-      dropdown.classList.remove("show");
+      chordDropdown.classList.remove("open");
     });
   });
 
-  document.addEventListener("click", () => dropdown.classList.remove("show"));
+  document.addEventListener("click", () => chordDropdown.classList.remove("open"));
 
+  // ── Inserir no cursor ──────────────────────────────────────────────────────
   function insertAtCursor(field, value) {
-    const start = field.selectionStart;
-    const end = field.selectionEnd;
-    field.value = field.value.substring(0, start) + value + field.value.substring(end);
+    const s = field.selectionStart, e = field.selectionEnd;
+    field.value = field.value.slice(0, s) + value + field.value.slice(e);
     field.focus();
-    field.selectionStart = field.selectionEnd = start + value.length;
+    field.selectionStart = field.selectionEnd = s + value.length;
   }
 
-  // ====== Transposição ======
+  // ── Transposição ───────────────────────────────────────────────────────────
   function transposeChord(chord, step) {
-    const regex = /^([A-G](#|b)?)(.*)$/;
-    const match = chord.match(regex);
-    if (!match) return chord;
-
-    let root = match[1];
-    let suffix = match[3] || "";
-
-    const flatMap = { "Db":"C#", "Eb":"D#", "Gb":"F#", "Ab":"G#", "Bb":"A#" };
-    if (flatMap[root]) root = flatMap[root];
-
-    let index = notes.indexOf(root);
-    if (index === -1) return chord;
-
-    let newIndex = (index + step + notes.length) % notes.length;
-    return notes[newIndex] + suffix;
+    const m = chord.match(/^([A-G](#|b)?)(.*)$/);
+    if (!m) return chord;
+    let root = FLAT_MAP[m[1]] || m[1];
+    const idx = NOTES.indexOf(root);
+    if (idx === -1) return chord;
+    return NOTES[(idx + step + 12) % 12] + (m[3] || "");
   }
 
   function transposeText(text, step) {
-    return text.replace(/\[([^\]]+)\]/g, (match, chord) => {
-      let prefix = chord[0] === "|" || chord[0] === " " ? chord[0] : "";
-      chord = prefix ? chord.slice(1) : chord;
+    return text.replace(/\[([^\]]+)\]/g, (_, inner) => {
+      const prefix = (inner[0] === "|" || inner[0] === " ") ? inner[0] : "";
+      const chord  = prefix ? inner.slice(1) : inner;
       return `[${prefix}${transposeChord(chord, step)}]`;
     });
   }
 
-  transposeUp.addEventListener("click", () => {
+  document.getElementById("transposeUp").addEventListener("click", () => {
     inputArea.value = transposeText(inputArea.value, 1);
-    updatePreview();
+    updatePreview(); showToast("Transposto +1 semitom");
   });
 
-  transposeDown.addEventListener("click", () => {
+  document.getElementById("transposeDown").addEventListener("click", () => {
     inputArea.value = transposeText(inputArea.value, -1);
-    updatePreview();
+    updatePreview(); showToast("Transposto −1 semitom");
   });
 
-  // ====== Renderização ======
-  function updatePreview() {
-    const text = inputArea.value;
-    const lines = text.split("\n");
-    let html = "";
+  // ── Exportar / Importar ────────────────────────────────────────────────────
 
-    lines.forEach(line => {
-      let chordLine = "";
-      let lyricLine = "";
-      let chordActive = false;
-      let chordBuffer = "";
-      let chordSkipper = 0
+  const saveDialog    = document.getElementById("saveDialog");
+  const saveFilename  = document.getElementById("saveFilename");
+  const saveConfirm   = document.getElementById("saveConfirmBtn");
+  const saveCancel    = document.getElementById("saveCancelBtn");
 
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-
-        if (ch === "[" && !chordActive) {
-          chordActive = true;
-          chordBuffer = "";
-        } else if (ch === "]" && chordActive) {
-          chordActive = false;
-
-          if (chordBuffer.startsWith("|")) {
-            const core = chordBuffer.slice(1);
-            chordSkipper = core.length - 1;
-            chordLine += `<span class="chord">${escapeHtml(core)}</span>`;
-            lyricLine += `<span class="bar">|</span>`;
-          } else if (chordBuffer.startsWith(" ")) {
-            const core = chordBuffer.slice(1);
-            chordLine += "&nbsp;".repeat(core.length);
-            lyricLine += `<span class="chord">${escapeHtml(core)}</span>`;
-          } else {
-            chordSkipper = chordBuffer.length;
-            chordLine += `<span class="chord">${escapeHtml(chordBuffer)}</span>`;
-          }
-
-        } else if (chordActive) {
-          chordBuffer += ch;
-        } else {
-          if(chordSkipper === 0) {
-            chordLine += "&nbsp;";
-          } else {
-            chordSkipper--;
-          }
-          lyricLine += (ch === " ") ? "&nbsp;" : escapeHtml(ch);
-        }
-      }
-      html += `<div class="line">${chordLine}<br>${lyricLine}</div>`;
-    });
-    previewArea.innerHTML = html;
+  // Abre o diálogo "Salvar como"
+  function saveTxt() {
+    saveFilename.value = "cifra";
+    saveDialog.classList.add("show");
+    // Seleciona o texto do input para facilitar renomear
+    setTimeout(() => { saveFilename.select(); }, 60);
   }
 
-  function escapeHtml(str) {
-    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  }
-
-  // ====== Exportar / Importar ======
-  function downloadFile(blob, filename) {
+  // Confirma o salvamento — faz o download com o nome escolhido
+  function confirmSave() {
+    let name = saveFilename.value.trim() || "cifra";
+    // Remove .txt se o usuário digitou, para não ficar "cifra.txt.txt"
+    if (name.toLowerCase().endsWith(".txt")) name = name.slice(0, -4);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
+    a.href = URL.createObjectURL(new Blob([inputArea.value], { type: "text/plain" }));
+    a.download = name + ".txt";
     a.click();
     URL.revokeObjectURL(a.href);
+    closeDialog();
+    showToast(`"${name}.txt" salvo!`);
   }
 
-  exportTxt.addEventListener("click", () => {
-    const blob = new Blob([inputArea.value], { type: "text/plain" });
-    downloadFile(blob, "cifra.txt");
+  function closeDialog() {
+    saveDialog.classList.remove("show");
+  }
+
+  document.getElementById("exportTxt").addEventListener("click", saveTxt);
+  saveConfirm.addEventListener("click", confirmSave);
+  saveCancel.addEventListener("click", closeDialog);
+
+  // Fecha ao clicar no fundo escuro
+  saveDialog.addEventListener("click", e => {
+    if (e.target === saveDialog) closeDialog();
   });
 
-  exportJson.addEventListener("click", () => {
-    const data = { cifra: inputArea.value };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    downloadFile(blob, "cifra.json");
+  // Enter confirma, Escape cancela
+  saveFilename.addEventListener("keydown", e => {
+    if (e.key === "Enter")  { e.preventDefault(); confirmSave(); }
+    if (e.key === "Escape") { e.preventDefault(); closeDialog(); }
   });
 
-  importFile.addEventListener("click", () => fileInput.click());
+  document.getElementById("importFile").addEventListener("click", () =>
+    document.getElementById("fileInput").click()
+  );
 
-  fileInput.addEventListener("change", (event) => {
-    const file = event.target.files[0];
+  document.getElementById("fileInput").addEventListener("change", e => {
+    const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target.result;
+    reader.onload = ev => {
+      const content = ev.target.result;
       if (file.name.endsWith(".json")) {
-        try {
-          const data = JSON.parse(content);
-          inputArea.value = data.cifra || "";
-        } catch {
-          alert("Arquivo JSON inválido!");
-        }
+        try { inputArea.value = JSON.parse(content).cifra || ""; }
+        catch { alert("JSON inválido!"); return; }
       } else {
         inputArea.value = content;
       }
       updatePreview();
+      showToast("Arquivo importado");
     };
     reader.readAsText(file);
+    e.target.value = "";
   });
 
-  // ====== Atalhos ======
-  document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey) {
-      switch (e.key) {
-        case "1": e.preventDefault(); insertAtCursor(inputArea, "[C]"); break;
-        case "2": e.preventDefault(); insertAtCursor(inputArea, "[|C]"); break;
-        case "3": e.preventDefault(); insertAtCursor(inputArea, "[ C]"); break;
-        case "ArrowUp": e.preventDefault(); inputArea.value = transposeText(inputArea.value, 1); break;
-        case "ArrowDown": e.preventDefault(); inputArea.value = transposeText(inputArea.value, -1); break;
-      }
-      updatePreview();
+  // ── Renderização do Preview ────────────────────────────────────────────────
+  /*
+   * NOVO ALGORITMO — cada linha do editor é dividida em:
+   *   - chordRow  : os acordes posicionados exatamente sobre a sílaba certa
+   *   - lyricRow  : a letra, sem os tokens de acorde
+   *
+   * Tipos de acorde:
+   *   [C]  → acorde normal (vermelho), aparece na linha de cima alinhado à letra
+   *   [|C] → barra de compasso + acorde (vermelho), | aparece na letra
+   *   [ C] → acorde de introdução (azul), aparece na linha de baixo (como cifra da Maranata)
+   *
+   * A lógica usa um "cursor virtual" que avança separadamente na linha de acordes
+   * e na linha de letra, garantindo alinhamento monospace perfeito.
+   */
+  function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/ /g,"&nbsp;");
+  }
+
+  function buildLine(raw) {
+    // Tokeniza a linha em segmentos: texto puro ou acorde
+    const tokens = [];
+    const re = /\[([^\]]*)\]/g;
+    let last = 0, m;
+    while ((m = re.exec(raw)) !== null) {
+      if (m.index > last) tokens.push({ type: "text", val: raw.slice(last, m.index) });
+      tokens.push({ type: "chord", inner: m[1] });
+      last = re.lastIndex;
     }
+    if (last < raw.length) tokens.push({ type: "text", val: raw.slice(last) });
+
+    // Verifica se há algum acorde normal ou com barra (que vai acima)
+    const hasAbove = tokens.some(t => t.type === "chord" && !t.inner.startsWith(" "));
+
+    let chordHtml = ""; // linha de cima (acordes normais)
+    let lyricHtml = ""; // linha da letra (letra + acordes de introdução inline)
+
+    // Posição em caracteres monospace para alinhar
+    let chordCursor = 0;
+    let lyricCursor = 0;
+
+    for (const tok of tokens) {
+      if (tok.type === "text") {
+        lyricHtml  += escHtml(tok.val);
+        lyricCursor += tok.val.length;
+        // Preenche a linha de acorde com espaços até alcançar a letra
+        if (hasAbove && chordCursor < lyricCursor) {
+          chordHtml  += "&nbsp;".repeat(lyricCursor - chordCursor);
+          chordCursor = lyricCursor;
+        }
+      } else {
+        const inner = tok.inner;
+
+        if (inner.startsWith("|")) {
+          // Acorde com barra: | vai na letra, acorde vai em cima
+          const core = inner.slice(1); // ex: "C" de "|C"
+
+          // Na linha de letra: insere o |
+          lyricHtml  += `<span class="ch-bar">|</span>`;
+          lyricCursor += 1;
+
+          // Na linha de acorde: o acorde deve começar na mesma posição do |
+          // Alinha se necessário
+          if (chordCursor < lyricCursor - 1) {
+            chordHtml  += "&nbsp;".repeat(lyricCursor - 1 - chordCursor);
+            chordCursor = lyricCursor - 1;
+          }
+          chordHtml  += `<span class="ch">${escHtml(core)}</span>`;
+          chordCursor += core.length;
+
+        } else if (inner.startsWith(" ")) {
+          // Acorde de introdução: inline na linha da letra, em vermelho
+          const core = inner.slice(1);
+          lyricHtml  += `<span class="ch-intro">${escHtml(core)}</span>`;
+          lyricCursor += core.length;
+
+        } else {
+          // Acorde normal: vai em cima, alinhado à posição atual da letra
+          // Alinha chordCursor com lyricCursor
+          if (chordCursor < lyricCursor) {
+            chordHtml  += "&nbsp;".repeat(lyricCursor - chordCursor);
+            chordCursor = lyricCursor;
+          }
+          chordHtml  += `<span class="ch">${escHtml(inner)}</span>`;
+          chordCursor += inner.length;
+        }
+      }
+    }
+
+    // Monta o HTML da linha
+    let html = `<span class="cifra-pair">`;
+    if (hasAbove)
+      html += `<span class="cifra-chord-row">${chordHtml || "&nbsp;"}</span>`;
+    if (lyricHtml || hasAbove)
+      html += `<span class="cifra-lyric-row">${lyricHtml || "&nbsp;"}</span>`;
+    html += `</span>`;
+    return html;
+  }
+
+  function updatePreview() {
+    const text  = inputArea.value;
+    const lines = text.split("\n");
+    let html    = "";
+    let count   = 0; // conta acordes para o meta
+
+    for (const line of lines) {
+      if (line.trim() === "") {
+        html += `<span class="cifra-spacer"></span>`;
+      } else {
+        html += buildLine(line);
+      }
+      // conta acordes
+      const m = line.match(/\[[^\]]+\]/g);
+      if (m) count += m.length;
+    }
+
+    previewArea.innerHTML = html;
+
+    // Atualiza meta
+    const lineCount = lines.filter(l => l.trim()).length;
+    previewMeta.textContent = `${lineCount} linha${lineCount !== 1 ? "s" : ""} · ${count} acorde${count !== 1 ? "s" : ""}`;
+
+    // Persiste texto
+    localStorage.setItem("cifra_text", text);
+  }
+
+  // ── Atalhos de teclado ─────────────────────────────────────────────────────
+  document.addEventListener("keydown", e => {
+    if (!e.ctrlKey) return;
+    switch (e.key) {
+      case "s":
+      case "S":
+        e.preventDefault();
+        saveTxt();
+        return;
+      case "1": e.preventDefault(); insertAtCursor(inputArea, "[C]"); break;
+      case "2": e.preventDefault(); insertAtCursor(inputArea, "[|C]"); break;
+      case "3": e.preventDefault(); insertAtCursor(inputArea, "[ C]"); break;
+      case "ArrowUp":
+        e.preventDefault();
+        inputArea.value = transposeText(inputArea.value, 1);
+        showToast("Transposto +1 semitom");
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        inputArea.value = transposeText(inputArea.value, -1);
+        showToast("Transposto −1 semitom");
+        break;
+    }
+    updatePreview();
   });
 
+  // ── Live update ────────────────────────────────────────────────────────────
+  inputArea.addEventListener("input", updatePreview);
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  loadState();
   updatePreview();
 </script>
 </body>
