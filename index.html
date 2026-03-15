@@ -141,14 +141,14 @@
     opacity: 0;
     background: var(--surface);
     border-bottom: 0px solid var(--border);
-    transition: max-height 0.17s ease, opacity 0.17s ease;
+    transition: max-height 0.2s ease, opacity 0.2s ease;
   }
 
   #extraButtons.show {
     max-height: 200px;
     opacity: 1;
     border-bottom-width: 1px;
-    transition: max-height 0.17s ease, opacity 0.17s ease;
+    transition: max-height 0.2s ease, opacity 0.2s ease;
   }
 
   .extra-row {
@@ -348,21 +348,56 @@
     min-height: 1.6em;
   }
 
-  /* Acorde inline (acima da letra) */
-  .ch {
-    color: var(--chord);
+  /* Linha inline com acordes posicionados por célula */
+  .cifra-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    font-family: 'Lora', serif;
+    font-size: 15px;
+    line-height: 1;
+    padding-top: 1.4em; /* reserva espaço para a linha de acordes */
+  }
+
+  /* Célula base — cada fragmento de texto ou acorde */
+  .tc {
+    position: relative;
+    display: inline-block;
+    white-space: pre;
+  }
+
+  /* Acorde flutuando acima da célula */
+  .tc-chord {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
     font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
     font-weight: 600;
+    color: var(--chord);
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* Célula de acorde puro [C] — sem texto próprio, largura mínima 0 */
+  .tc-above {
+    min-width: 0;
+  }
+
+  /* Célula de barra [|C] — o | e o acorde acima alinhados */
+  .tc-bar {
+    display: inline-block;
   }
 
   /* Barra de compasso | */
   .ch-bar {
     color: var(--bar);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Lora', serif;
     font-weight: 700;
   }
 
-  /* Acorde de introdução (inline na linha da letra) */
+  /* Acorde inline (introdução) */
   .ch-intro {
     color: var(--chord);
     font-family: 'JetBrains Mono', monospace;
@@ -785,7 +820,6 @@
   }
 
   function buildLine(raw) {
-    // Tokeniza a linha em segmentos: texto puro ou acorde
     const tokens = [];
     const re = /\[([^\]]*)\]/g;
     let last = 0, m;
@@ -796,72 +830,67 @@
     }
     if (last < raw.length) tokens.push({ type: "text", val: raw.slice(last) });
 
-    // Verifica se há algum acorde normal ou com barra (que vai acima)
     const hasAbove = tokens.some(t => t.type === "chord" && !t.inner.startsWith(" "));
 
-    let chordHtml = ""; // linha de cima (acordes normais)
-    let lyricHtml = ""; // linha da letra (letra + acordes de introdução inline)
+    // Linha sem acordes acima: renderiza simples
+    if (!hasAbove) {
+      let simple = "";
+      for (const tok of tokens) {
+        if (tok.type === "text") {
+          simple += escHtml(tok.val);
+        } else if (tok.inner.startsWith(" ")) {
+          simple += `<span class="ch-intro">${escHtml(tok.inner.slice(1))}</span>`;
+        }
+      }
+      return `<span class="cifra-pair"><span class="cifra-lyric-row">${simple || "&nbsp;"}</span></span>`;
+    }
 
-    // Posição em caracteres monospace para alinhar
-    let chordCursor = 0;
-    let lyricCursor = 0;
+    /*
+     * Para linhas com acordes acima usamos células inline.
+     * Estratégia para [C] normal:
+     *   - Se o próximo token for texto, funde acorde + texto numa célula só.
+     *   - Se não houver texto seguinte (acorde no fim da linha), célula com &nbsp;.
+     * Para [|C]:
+     *   - Acorde e | ficam na mesma célula; o acorde flutua acima do |.
+     */
+    let html = "";
+    let i = 0;
+    while (i < tokens.length) {
+      const tok = tokens[i];
 
-    for (const tok of tokens) {
       if (tok.type === "text") {
-        lyricHtml  += escHtml(tok.val);
-        lyricCursor += tok.val.length;
-        // Preenche a linha de acorde com espaços até alcançar a letra
-        if (hasAbove && chordCursor < lyricCursor) {
-          chordHtml  += "&nbsp;".repeat(lyricCursor - chordCursor);
-          chordCursor = lyricCursor;
-        }
+        // Texto sem acorde precedente — célula simples
+        html += `<span class="tc">${escHtml(tok.val)}</span>`;
+        i++;
+
+      } else if (tok.inner.startsWith("|")) {
+        // [|C] — barra na letra, acorde exatamente acima do |
+        const core = tok.inner.slice(1);
+        html += `<span class="tc">` +
+                  `<span class="tc-chord">${escHtml(core)}</span>` +
+                  `<span class="ch-bar">|</span>` +
+                `</span>`;
+        i++;
+
+      } else if (tok.inner.startsWith(" ")) {
+        // [ C] — introdução inline
+        html += `<span class="tc"><span class="ch-intro">${escHtml(tok.inner.slice(1))}</span></span>`;
+        i++;
+
       } else {
-        const inner = tok.inner;
-
-        if (inner.startsWith("|")) {
-          // Acorde com barra: | vai na letra, acorde vai em cima
-          const core = inner.slice(1); // ex: "C" de "|C"
-
-          // Na linha de letra: insere o |
-          lyricHtml  += `<span class="ch-bar">|</span>`;
-          lyricCursor += 1;
-
-          // Na linha de acorde: o acorde deve começar na mesma posição do |
-          // Alinha se necessário
-          if (chordCursor < lyricCursor - 1) {
-            chordHtml  += "&nbsp;".repeat(lyricCursor - 1 - chordCursor);
-            chordCursor = lyricCursor - 1;
-          }
-          chordHtml  += `<span class="ch">${escHtml(core)}</span>`;
-          chordCursor += core.length;
-
-        } else if (inner.startsWith(" ")) {
-          // Acorde de introdução: inline na linha da letra, em vermelho
-          const core = inner.slice(1);
-          lyricHtml  += `<span class="ch-intro">${escHtml(core)}</span>`;
-          lyricCursor += core.length;
-
-        } else {
-          // Acorde normal: vai em cima, alinhado à posição atual da letra
-          // Alinha chordCursor com lyricCursor
-          if (chordCursor < lyricCursor) {
-            chordHtml  += "&nbsp;".repeat(lyricCursor - chordCursor);
-            chordCursor = lyricCursor;
-          }
-          chordHtml  += `<span class="ch">${escHtml(inner)}</span>`;
-          chordCursor += inner.length;
-        }
+        // [C] normal — funde com o texto seguinte (se existir)
+        const chord = tok.inner;
+        const next  = tokens[i + 1];
+        const textVal = (next && next.type === "text") ? next.val : "";
+        html += `<span class="tc">` +
+                  `<span class="tc-chord">${escHtml(chord)}</span>` +
+                  `${escHtml(textVal) || "&nbsp;"}` +
+                `</span>`;
+        i += textVal ? 2 : 1; // consome o token de texto junto se existir
       }
     }
 
-    // Monta o HTML da linha
-    let html = `<span class="cifra-pair">`;
-    if (hasAbove)
-      html += `<span class="cifra-chord-row">${chordHtml || "&nbsp;"}</span>`;
-    if (lyricHtml || hasAbove)
-      html += `<span class="cifra-lyric-row">${lyricHtml || "&nbsp;"}</span>`;
-    html += `</span>`;
-    return html;
+    return `<span class="cifra-pair"><span class="cifra-line">${html}</span></span>`;
   }
 
   function updatePreview() {
